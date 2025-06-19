@@ -42,10 +42,9 @@ def npci_scraper(user_agent=''):
         circular_links = [l.get_attribute('href') for l in l1]
         browser.close()
 
+    # The links to the circular's webpages are stored in circular_links
 
-    # the links to the circular's webpages are stored in circular_links
-
-    #Continue here:
+    # Continue here:
 
 
 
