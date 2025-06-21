@@ -137,4 +137,4 @@ def npci_scraper(user_agent='', year=''):
         browser.close()
 
 # 🎬 Let's go!
-npci_scraper()
+npci_scraper(year='2016')
