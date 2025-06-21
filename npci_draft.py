@@ -89,12 +89,24 @@ def npci_scraper(user_agent='', year=''):
                 if response and response.status != 200:
                     print(f"⚠️ Failed to load {link}: {response.status}")
                     continue
+                if year!='':
+                    # Do for specific year
+                    pdf_anchors = [
+                        a for a in page.query_selector_all("div#year"+year+" a")
+                        if 'download' in (a.inner_text() or '').lower() and a.get_attribute('href').endswith('.pdf')
+                    ]
+                else:
+                    # Do for all years
+                    pdf_anchors = [
+                        a for a in page.query_selector_all("a[href$='.pdf']")
+                        if 'download' in (a.inner_text() or '').lower()
+                    ]
 
-                pdf_anchors = [
-                    a for a in page.query_selector_all("a[href$='.pdf']")
-                    if 'download' in (a.inner_text() or '').lower()
-                ]
                 seen_names = set()
+
+                if not pdf_anchors:
+                    print(f"Couldn't find any links for {section_name} in year {year}")
+                    continue
 
                 for i, anchor in enumerate(pdf_anchors):
                     pdf_url = anchor.get_attribute("href")
