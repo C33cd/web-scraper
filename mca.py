@@ -1,100 +1,114 @@
+import base64
+import json
 import os
-import random
+import re
 import time
 
-import playwright_stealth
 import requests
-from playwright.sync_api import sync_playwright, Error, Page
-import re
-
-from playwright_stealth.stealth import Stealth
 
 
-def sanitize_filename(name):
+def sanitize_filename(name, max_length=100):
     # Replace invalid Windows filename characters with underscore
-    return re.sub(r'[<>:"/\\|?*]', '_', name)
+    name = re.sub(r'[<>:"/\\|?*]', '_', name)
+    return name[:max_length]
 
 
-def download_as_pdf(pdf_url: str, download_dir: str):
+def download_as_pdf(pdf_url: str, download_dir: str, name: str = ''):
     # Pass the PDF URL as pdf_url and the directory where you want to store file as download_dir
     download_dir = sanitize_filename(download_dir)
     os.makedirs(download_dir, exist_ok=True)
-    filename = os.path.basename(pdf_url.split("?")[0])
+    filename = name.removesuffix('\n') if name else os.path.basename(pdf_url.split("?")[0])
     save_path = os.path.join(download_dir, sanitize_filename(filename))
-    response = requests.get(pdf_url)
+    """
+    Fill in your headers and cookies here in the same format
+
+    
+    Steps to fill in:
+    1. Go to https://www.mca.gov.in/bin/ebook/dms/getdocument?doc=Nzc5Mg==&docCategory=Circulars&type=open or any pdf link of the website
+    2. Go to Devtools (ctrl+shift+i) and then to Network
+    3. Reload the page, keeping Devtools open
+    4. Right click on first request starting with 'getDocument?' and copy as curl (choose any of the options depending on your command prompt)
+    5. Paste the CURL in a text editor
+    6. All the text preceded by -H should be in header, -b should be in cookies.
+        eg.
+        curl 'https://example.com/file.pdf' \
+        -H 'accept: application/pdf' \
+        -H 'user-agent: Mozilla/5.0' \
+        -H 'referer: https://example.com/' \
+        -b 'sessionid=abc123; csrftoken=xyz456'
+        
+        gets converted as:
+        
+        url = "https://example.com/file.pdf"
+
+        headers = {
+            "accept": "application/pdf",
+            "user-agent": "Mozilla/5.0",
+            "referer": "https://example.com/"
+        }
+
+        cookies = {
+            "sessionid": "abc123",
+            "csrftoken": "xyz456"
+        }
+ 
+    """
+    headers = {
+    }
+
+    cookies = {
+    }
+
+    response = requests.get(pdf_url, headers=headers, cookies=cookies)
+    if response and response.status_code != 200:
+        print(f"Failed to load homepage: {response.status_code}")
+        return
+    if not save_path.lower().endswith('.pdf'):
+        save_path += '.pdf'
     with open(save_path, "wb") as f:
         f.write(response.content)
-    print(f"Downloaded to: {save_path}")
+        print(f"Downloaded to: {save_path}")
+        f.close()
+    if "application/pdf" not in response.headers.get("content-type", ""):
+        print("Did not receive a PDF. Response content-type:", response.headers.get("content-type"))
+        print("Response text:", response.text[:500])  # Print first 500 chars for debugging
+
+
+def encode_link(link_value):
+    # Ensure link_value is a string
+    link_str = str(link_value)
+    encoded = base64.b64encode(link_str.encode('utf-8')).decode('utf-8')
+    return encoded
+
+def build_download_url(link, docCategory="Circulars"):
+    doc = encode_link(link)
+    return f"https://www.mca.gov.in/bin/ebook/dms/getdocument?doc={doc}&docCategory={docCategory}&type=open"
 
 
 def mca_scraper(year='-1'):
-    # Resources:
-    mca_main_link = 'https://www.mca.gov.in/content/mca/global/en/acts-rules/ebooks/circulars.html'
     d_dir = 'MCA_Circulars'
-    os.makedirs(d_dir, exist_ok=True)
-    s1 = Stealth()
-    # print(type(Stealth))
-    # return
+    # Load JSON into variable
+    with open('urls.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        f.close()
+    """
+    # Code to make the json file more readable (not required for program): 
+    # Get the JSON file manually from this link: https://www.mca.gov.in/bin/ebook/service/documentMetadata?docCategory=Circulars&flag=initial&status=Current
+    pretty_json_string = json.dumps(data, indent=4, ensure_ascii=False)
+    print(pretty_json_string)
 
-    # Collect documents:
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(
-            accept_downloads=True,
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
-        )
-        page = context.new_page()
-        s1.apply_stealth_sync(page)
-        """
-        response = page.goto('https://www.mca.gov.in/content/mca/global/en/home.html', wait_until="domcontentloaded", timeout=90000)
-        if response and response.status != 200:
-            print(f"Failed to load homepage: {response.status}")
-            return
+    with open('pretty_file.json', 'w', encoding='utf-8') as f:
+        f.write(pretty_json_string)
+        f.close()
+    """
+    links = [item['link'] for item in data['data'] if 'link' in item]
+    names = [item['shortDescription'] for item in data['data'] if 'shortDescription' in item]
+    print(links)
+    for link, name in zip(links, names):
+        url = build_download_url(link)
+        download_as_pdf(pdf_url=url, download_dir=d_dir, name=name)
         time.sleep(3)
-        # close the popup
-        page.click('button#btnClosePopup')
-        # Click Acts and Rules
-        page.click("a:has-text('Acts & Rules'), button:has-text('Acts & Rules')")
-        page.wait_for_load_state('domcontentloaded', timeout=90000)
-        time.sleep(5)
-        page.click("a:has-text('Circulars'), button:has-text('Acts & Rules')")
-        time.sleep(random.uniform(1,5))
-        """
 
-        response = page.goto(mca_main_link, wait_until="domcontentloaded", timeout=90000)
-        if response and response.status != 200:
-            print(f"Failed to load {mca_main_link}: {response.status}")
-            return
-        # Select 'All' in dropdown box to show all results in one page
-        page.wait_for_selector('select[name="notificationCircularTable_length"] option[value="-1"]')
-        page.select_option('select[name="notificationCircularTable_length"]', value='-1')
-        # Select Years in dropdown box
-        if year != '-1' and int(year) < 1999:
-            year = 1999
-        page.wait_for_selector('#yearsBtn')
-        page.select_option('#yearsBtn', value=year)
-        # Add functionality of acts if necessary
-        # Click 'Go' button to apply filters
-        page.wait_for_selector('#clickGo:enabled')
-        page.click('#clickGo')
-        # Get links
-        links = page.evaluate("""
-        () => {
-            // DataTables stores its instance on the table element
-            let table = $('#notificationCircularTable').DataTable();
-            return table.rows().data().toArray();
-        }
-        """)
-        print(links)
-        # Write HTML to file (for debugging)
-        html_text = page.content()
-        with open('mca_html', 'w', encoding='utf-8') as f:
-            f.write(html_text)
-            f.close()
-        # links = page.locator()
-        page.close()
-        context.close()
-        browser.close()
 
 
 mca_scraper()
