@@ -46,7 +46,7 @@ def extract_section_name(url):
     return sanitize_filename(parts[-2] if len(parts) >= 2 else parts[-1])
 
 # The boss function that does everything
-def npci_scraper(user_agent=''):
+def npci_scraper(user_agent='', year=''):
     npci_main_link = 'https://www.npci.org.in/'
 
     with sync_playwright() as p:
@@ -90,7 +90,10 @@ def npci_scraper(user_agent=''):
                     print(f"⚠️ Failed to load {link}: {response.status}")
                     continue
 
-                pdf_anchors = page.query_selector_all("a[href$='.pdf']")
+                pdf_anchors = [
+                    a for a in page.query_selector_all("a[href$='.pdf']")
+                    if 'download' in (a.inner_text() or '').lower()
+                ]
                 seen_names = set()
 
                 for i, anchor in enumerate(pdf_anchors):
