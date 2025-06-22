@@ -15,7 +15,6 @@ def sanitize_filename(name, max_length=100):
 
 def download_as_pdf(pdf_url: str, download_dir: str, name: str = ''):
     # Pass the PDF URL as pdf_url and the directory where you want to store file as download_dir
-    download_dir = sanitize_filename(download_dir)
     os.makedirs(download_dir, exist_ok=True)
     filename = name.removesuffix('\n') if name else os.path.basename(pdf_url.split("?")[0])
     save_path = os.path.join(download_dir, sanitize_filename(filename))
@@ -101,12 +100,19 @@ def mca_scraper(year='-1'):
         f.write(pretty_json_string)
         f.close()
     """
+    yrs = set(item['notificationdate'].strip()[-4:] for item in data['data'] if 'notificationdate' in item)
+    for yr in yrs:
+        os.makedirs(os.path.join(d_dir, sanitize_filename(yr)), exist_ok=True)
     links = [item['link'] for item in data['data'] if 'link' in item]
     names = [item['shortDescription'] for item in data['data'] if 'shortDescription' in item]
+    years = [item['notificationdate'].strip()[-4:] for item in data['data'] if 'notificationdate' in item]
     print(links)
-    for link, name in zip(links, names):
+    for link, name, year in zip(links, names, years):
         url = build_download_url(link)
-        download_as_pdf(pdf_url=url, download_dir=d_dir, name=name)
+        print(d_dir)
+        print(year)
+        print(os.path.join(d_dir, sanitize_filename(year)))
+        download_as_pdf(pdf_url=url, download_dir=os.path.join(d_dir, sanitize_filename(year)), name=name)
         time.sleep(3)
 
 
