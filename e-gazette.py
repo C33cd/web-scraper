@@ -1,4 +1,5 @@
 import os
+import random
 import time
 
 import requests
@@ -9,17 +10,20 @@ import re
 def navigate_to_search(page: Page)->Page:
     page.goto('https://egazette.gov.in/', wait_until='domcontentloaded', timeout=90000)
     # Click the OK button if it appears
-    time.sleep(1)
+    time.sleep(random.uniform(1,3))
     page.wait_for_selector("#ImgMessage_OK", timeout=5000)
     page.click("#ImgMessage_OK")
     # Wait for the G20 popup close button and click it
     page.wait_for_selector("img.img-fluid", timeout=5000)
     page.click("img.img-fluid")
+    time.sleep(random.uniform(1, 3))
     # Click the 'Search' tab
     page.wait_for_selector("#sgzt", timeout=5000)
     page.click("#sgzt")    # Click 'Search by Ministry':
+    time.sleep(random.uniform(1,3))
     page.wait_for_selector("#btnMinistry", timeout=5000)
     page.click("#btnMinistry")
+    time.sleep(random.uniform(1,10))
     return page
 
 def scraper():
