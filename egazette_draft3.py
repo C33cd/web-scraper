@@ -1,6 +1,8 @@
 import os
 import random
 import time
+from math import ceil
+
 os.makedirs('downloads', exist_ok=True)
 import requests
 from playwright.sync_api import sync_playwright, Error, Page, Browser, BrowserContext
@@ -86,7 +88,7 @@ def scraper():
         print("Submit clicked")
 
         # Download Standard Report
-                # Download Standard Report
+        # Download Standard Report
         with page.expect_download() as download_info:
             page.click('input#imgPrintS')
         download = download_info.value
@@ -96,54 +98,69 @@ def scraper():
         # NEW: Download Gazette PDFs on current page
         import urllib.parse
 
-                # NEW: Download Gazette PDFs on current page
-        for i in range(15):
-            btn_id = f"input#gvGazetteList_imgbtndownload_{i}"
-            if not page.locator(btn_id).is_visible():
-                print(f"Button {btn_id} not visible, skipping.")
-                continue
+        # NEW: Download Gazette PDFs on current page
+        # Start downloading docs:
+        # get total no of pages:
+        gazette_text = page.locator("#lbl_Result").inner_text()
+        page_count = ceil(int(gazette_text[23:].strip())/15)
+        for j in range(page_count):
+            page.wait_for_load_state('domcontentloaded')
+            for i in range(15):
+                page.wait_for_load_state('domcontentloaded')
+                btn_id = f"input#gvGazetteList_imgbtndownload_{i}"
+                if not page.locator(btn_id).is_visible():
+                    print(f"Button {btn_id} not visible, skipping.")
+                    continue
 
-            try:
-                with context.expect_page() as popup_info:
-                    page.click(btn_id)
+                try:
+                    with context.expect_page() as popup_info:
+                        page.click(btn_id)
 
-                popup = popup_info.value
-                popup.wait_for_load_state("domcontentloaded")
-                print(f"Popup opened: {popup.url}")
+                    popup = popup_info.value
+                    popup.wait_for_load_state("domcontentloaded")
+                    print(f"Popup opened: {popup.url}")
 
-                # Wait for iframe to load
-                popup.wait_for_selector("iframe#framePDFDisplay", timeout=15000)
-                iframe_src = popup.locator("iframe#framePDFDisplay").get_attribute("src")
-                if not iframe_src:
-                    raise Exception("No iframe source found")
-                
+                    # Wait for iframe to load
+                    popup.wait_for_selector("iframe#framePDFDisplay", timeout=15000)
+                    iframe_src = popup.locator("iframe#framePDFDisplay").get_attribute("src")
+                    if not iframe_src:
+                        raise Exception("No iframe source found")
 
-                # Construct full PDF URL
-                if not iframe_src.startswith("http"):
-                    pdf_path = iframe_src.lstrip("../")  # remove any leading ../
-                    pdf_url = f"https://egazette.gov.in/{pdf_path}"
-                else:
-                    pdf_url = iframe_src
 
-                print(f"PDF URL: {pdf_url}")
+                    # Construct full PDF URL
+                    if not iframe_src.startswith("http"):
+                        pdf_path = iframe_src.lstrip("../")  # remove any leading ../
+                        pdf_url = f"https://egazette.gov.in/{pdf_path}"
+                    else:
+                        pdf_url = iframe_src
 
-                # Extract file name (e.g., 261461.pdf)
-                filename = pdf_url.split("/")[-1]
+                    print(f"PDF URL: {pdf_url}")
 
-                # Download using requests
-                r = requests.get(pdf_url, headers={"User-Agent": "Mozilla/5.0"})
-                if r.ok:
-                    with open(f"downloads/{filename}", "wb") as f:
-                        f.write(r.content)
-                    print(f"Saved: {filename}")
-                else:
-                    print(f"Download failed: {r.status_code}")
+                    # Extract file name (e.g., 261461.pdf)
+                    filename = pdf_url.split("/")[-1]
 
-                popup.close()
+                    # Download using requests
+                    r = requests.get(pdf_url, headers={"User-Agent": "Mozilla/5.0"})
+                    if r.ok:
+                        with open(f"downloads/{filename}", "wb") as f:
+                            f.write(r.content)
+                        print(f"Saved: {filename}")
+                    else:
+                        print(f"Download failed: {r.status_code}")
 
-            except Exception as e:
-                print(f"Error downloading Gazette {i}: {e}")
+                    popup.close()
 
+                except Exception as e:
+                    print(f"Error downloading Gazette {i}: {e}")
+
+            print(j)
+            # Wait for the textbox to be visible
+            page.locator("#txtPageNo").scroll_into_view_if_needed()
+            # page.wait_for_selector("#txtPageNo", timeout=5000)
+            # Fill the textbox with a number (e.g., 12345)
+            page.locator("#txtPageNo").fill(str(j+2))
+            # Click GO
+            page.locator("#lnkGO").click()
 
         time.sleep(10)
 
