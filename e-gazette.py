@@ -20,17 +20,21 @@ def navigate_to_search(page: Page)->Page:
     time.sleep(random.uniform(1, 3))
     page.wait_for_load_state('domcontentloaded')
     # Click the 'Search' tab
-    max_retries = 3;
-    for attempt in range(max_retries):
-        page.wait_for_selector("#sgzt", timeout=5000)
-        page.click("#sgzt")
-        if "This site can’t be reached" not in page.content() and "site can't be reached" not in page.content().lower():
-            break  # Page loaded successfully
-        print(f"Site can't be reached, retrying... ({attempt + 1}/{max_retries})")
-        page.reload()
-        time.sleep(2)
+    # max_retries = 3;
+    # for attempt in range(max_retries):
+    page.wait_for_selector("#sgzt", timeout=5000)
+    page.click("#sgzt")
+    page.wait_for_load_state('domcontentloaded')
+    if "This site can’t be reached" not in page.content() and "site can't be reached" not in page.content().lower():
+        pass  # Page loaded successfully
     else:
-        raise Exception("Failed to load the page after several retries.")
+        # print(f"Site can't be reached, retrying... ({attempt + 1}/{max_retries})")
+        page.reload()
+        # page.wait_for_selector("#sgzt", timeout=5000)
+        # page.click("#sgzt")
+        time.sleep(2)
+    # else:
+    #     raise Exception("Failed to load the page after several retries.")
 
     page.wait_for_load_state('domcontentloaded')
     # Click 'Search by Ministry':
@@ -50,6 +54,15 @@ def scraper():
         page = context.new_page()
         page = navigate_to_search(page)
         # Continue here:
+        # After the form loads:
+        ministry_dropdown = page.locator("select#ddlMinistry").first
+        ministry_dropdown.click()
+        # page.evaluate("el => el.scrollTop = el.scrollHeight", ministry_dropdown)
+        ministry_dropdown.wait_for(state="visible")
+        # Select SEBI
+        ministry_dropdown.select_option("21")
+        print('Successfully selected SEBI')
+        time.sleep(10)
 
 
 # Run the code
