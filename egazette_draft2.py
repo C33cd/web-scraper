@@ -1,10 +1,18 @@
 import os
 import random
 import time
+from math import ceil
+
 os.makedirs('downloads', exist_ok=True)
 import requests
 from playwright.sync_api import sync_playwright, Error, Page, Browser, BrowserContext
 import re
+
+def download_as_pdf(pdf_url: str, save_path: str):
+    response = requests.get(pdf_url)
+    with open(save_path, "wb") as f:
+        f.write(response.content)
+    print(f"Downloaded to: {save_path}")
 
 
 def navigate_to_search(page: Page)->Page:
@@ -85,12 +93,32 @@ def scraper():
         page.click('input#ImgSubmitDetails')
         print("Submit clicked")
 
+        """
         # Download Standard Report
         with page.expect_download() as download_info:
             page.click('input#imgPrintS')
         download = download_info.value
         download.save_as('downloads/standard report.pdf')
         print("Standard Report downloaded")
+        """
+
+        # Start downloading docs:
+        # get total no of pages:
+        gazette_text = page.locator("#lbl_Result").inner_text()
+        page_count = ceil(int(gazette_text[23:].strip())/15)
+        # for j in range(15):
+        # Get name
+
+        # fname = page.locator("#gvGazetteList_lbl_UGID_"+str(0)).first.inner_text()
+        # save_as = 'downloads/'+fname
+        # # Find pdf url:
+        # year = page.locator("#gvGazetteList_lbl_PublishDate_"+str(0)).first.inner_text()[-4:0]
+        # print(year)
+        # print(fname)
+        # pdf_url = "https://egazette.gov.in/WriteReadData/"+year+"/"+fname[-6:0]+".pdf"
+        # print(pdf_url)
+        # download_as_pdf(pdf_url, fname)
+        # time.sleep(3)
 
 
         time.sleep(10)

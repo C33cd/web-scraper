@@ -57,7 +57,6 @@ def scraper():
         # After the form loads:
         ministry_dropdown = page.locator("select#ddlMinistry").first
         ministry_dropdown.click()
-        # page.evaluate("el => el.scrollTop = el.scrollHeight", ministry_dropdown)
         ministry_dropdown.wait_for(state="visible")
         # Select SEBI
         ministry_dropdown.select_option("21")
