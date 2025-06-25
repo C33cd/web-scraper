@@ -44,7 +44,7 @@ def extract_section_name(url):
     return sanitize_filename(parts[-2] if len(parts) >= 2 else parts[-1])
 
 # The main scraping function
-def npci_scraper(user_agent=''):
+def npci_scraper(user_agent='', year=''):
     npci_main_link = 'https://www.npci.org.in/'
 
     with sync_playwright() as p:
@@ -86,7 +86,14 @@ def npci_scraper(user_agent=''):
                     print(f"⚠️ Failed to load {link}: {response.status}")
                     continue
 
-                pdf_items = page.query_selector_all(".pdf-item")
+                pdf_items = []
+                if year != '':
+                    # Do for specific year
+                    pdf_items = page.query_selector_all("div#year"+year+" .pdf-item")
+                else:
+                    # Do for all years
+                    pdf_items = page.query_selector_all(".pdf-item")
+
                 print(f"🔍 Found {len(pdf_items)} pdf-item blocks")
 
                 seen_names = set()
@@ -94,6 +101,7 @@ def npci_scraper(user_agent=''):
                 for item in pdf_items:
                     title_elem = item.query_selector("p")
                     link_elem = item.query_selector("a[href$='.pdf']")  # ✅ FIXED: picks any PDF link
+
 
                     if not title_elem or not link_elem:
                         continue
@@ -127,5 +135,5 @@ def npci_scraper(user_agent=''):
         browser.close()
 
 # 🎬 Run the scraper
-npci_scraper()
+npci_scraper(year='')
 
