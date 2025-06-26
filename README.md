@@ -1,4 +1,4 @@
-[# Web Scraper for NPCI, IRDAI, SEBI, MCA, and Bank Circulars
+# Web Scraper for NPCI, IRDAI, SEBI, MCA, and Bank Circulars
 
 This repository contains Python scripts to scrape regulatory circulars, public notices, and disclosures from major Indian financial institutions and regulatory bodies including:
 
