@@ -49,7 +49,7 @@ def npci_scraper(user_agent='', year=''):
 
     with sync_playwright() as p:
         print("🚀 Launching browser and opening NPCI...")
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         context = browser.new_context(
             accept_downloads=True,
             user_agent=user_agent
@@ -67,7 +67,7 @@ def npci_scraper(user_agent='', year=''):
         browser.close()
 
         # Step 2: Visit each circular page and download PDFs
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         context = browser.new_context(user_agent=user_agent)
         page = context.new_page()
 
