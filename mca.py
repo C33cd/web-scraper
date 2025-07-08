@@ -71,19 +71,23 @@ def download_as_pdf(pdf_url: str, download_dir: str, name: str = ''):
     cookies = {
     }
 
-    response = requests.get(pdf_url, headers=headers, cookies=cookies)
-    if response and response.status_code != 200:
-        print(f"Failed to load homepage: {response.status_code}")
-        return
-    if not save_path.lower().endswith('.pdf'):
-        save_path += '.pdf'
-    with open(save_path, "wb") as f:
-        f.write(response.content)
-        print(f"Downloaded to: {save_path}")
-        f.close()
-    if "application/pdf" not in response.headers.get("content-type", ""):
-        print("Did not receive a PDF. Response content-type:", response.headers.get("content-type"))
-        print("Response text:", response.text[:500])  # Print first 500 chars for debugging
+    retries = 4
+    for attempt in range(retries):
+        response = requests.get(pdf_url, headers=headers, cookies=cookies)
+        if response and response.status_code != 200:
+            print(f"Failed to load homepage: {response.status_code}")
+            continue
+        if not save_path.lower().endswith('.pdf'):
+            save_path += '.pdf'
+        with open(save_path, "wb") as f:
+            f.write(response.content)
+            print(f"Downloaded to: {save_path}")
+            f.close()
+        if "application/pdf" not in response.headers.get("content-type", ""):
+            print("Did not receive a PDF. Response content-type:", response.headers.get("content-type"))
+            print("Response text:", response.text[:500])  # Print first 500 chars for debugging
+            break
+        break
 
 
 def encode_link(link_value):
@@ -126,7 +130,7 @@ def mca_scraper(year='-1'):
         print(year)
         print(os.path.join(d_dir, sanitize_filename(year)))
         download_as_pdf(pdf_url=url, download_dir=os.path.join(d_dir, sanitize_filename(year)), name=name)
-        time.sleep(3)
+        time.sleep(1.5)
 
 
 
