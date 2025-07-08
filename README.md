@@ -27,8 +27,13 @@ This repository contains Python scripts to scrape regulatory circulars, public n
 
 - Python 3.7+
 - Recommended: Use a virtual environment
-- Install dependencies (if any are added)
-- 
+- playwright
+- requests
+- beautifulsoup4
+- lxml
+- pdfkit
+- playwright_stealth @ git+https://github.com/AtuboDad/playwright_stealth.git
+ 
 ```bash
 pip install -r requirements.txt
 ](https://github.com/C33cd/web-scraper/blob/main/README.md)
