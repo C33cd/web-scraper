@@ -1,0 +1,6 @@
+playwright
+requests
+beautifulsoup4
+lxml
+pdfkit
+playwright_stealth @ git+https://github.com/AtuboDad/playwright_stealth.git
