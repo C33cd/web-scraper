@@ -108,6 +108,7 @@ def encode_link(link_value):
 
 
 def save_documents(cat: str, d_dir: str, headers: dict[str, str]):
+    print(f'Saving {cat}...')
     with open(cat+'.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
         f.close()
@@ -116,34 +117,28 @@ def save_documents(cat: str, d_dir: str, headers: dict[str, str]):
     names = []
     years = []
     if cat == 'Forms':
-        links = [item['link'] for item in data['data'] if 'link' in item]
-        names = [item['shortDescription'] if 'shortDescription' in item else '' for item in data['data']]
-        years = [item['notificationdate'].strip()[-4:] for item in data['data'] if 'notificationdate' in item]
-    elif cat == 'Notifications':
+        for item in data['data']:
+            links.append(item['docLink'])
+            names.append(item['docName'] if 'docName' in item else '')
+            years.append('N/A')
+    else:
         for item in data['data']:
             if item['docGroup'].strip() == 'The Companies Act, 2013':
                 links.append(item['link'])
-                names.append(item['shortDescription'] if 'shortDescription' in item else '')
+                names.append(item['docName'] if 'docName' in item else '')
                 years.append(item['notificationdate'].strip()[-4:] if 'notificationdate' in item else 'Unknown')
-    else:
-        # links = [item['link'] for item in data['data'] if 'link' in item]
-        # names = [item['shortDescription'] for item in data['data'] if 'shortDescription' in item]
-        # years = [item['notificationdate'].strip()[-4:] for item in data['data'] if 'notificationdate' in item]
-        for item in data['data']:
-            links.append(item['link'])
-            names.append(item['shortDescription'] if 'shortDescription' in item else '')
-            years.append(item['notificationdate'].strip()[-4:] if 'notificationdate' in item else 'Unknown')
-
-    print(links)
+    # print(links)
     yrs = set(years)
-    for yr in yrs:
-        os.makedirs(os.path.join(d_dir, sanitize_filename(yr)), exist_ok=True)
+    if years is not None and years[0] != 'N/A':
+        for yr in yrs:
+            os.makedirs(os.path.join(d_dir, sanitize_filename(yr)), exist_ok=True)
     for link, name, year in zip(links, names, years):
         url = build_download_url(link=link, docCategory=cat)
-        print(d_dir)
-        print(year)
-        print(os.path.join(d_dir, sanitize_filename(year)))
-        download_as_pdf(pdf_url=url, download_dir=os.path.join(d_dir, sanitize_filename(year)), name=name, headers=headers)
+        # print(os.path.join(d_dir, sanitize_filename(year)))
+        if year != 'N/A':
+            download_as_pdf(pdf_url=url, download_dir=os.path.join(d_dir, sanitize_filename(year)), name=name, headers=headers)
+        else:
+            download_as_pdf(pdf_url=url, download_dir=d_dir, name=name, headers=headers)
         time.sleep(1.5)
 
 
@@ -164,13 +159,16 @@ def mca_new_scr():
         "upgrade-insecure-requests": "1",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
     }
-    # names = ["Circulars", "Forms", "Notifications"]
-    names = ["Notifications", "Circulars"]
+    names = ["Forms", "Circulars", "Notifications"]
+    # names = ["Notifications", "Circulars"]
     # TO DO: Add circular based filtering for forms in save_data function
     try:
         for cat in names:
             os.makedirs(sanitize_filename(cat), exist_ok=True)
-            url = f"https://www.mca.gov.in/bin/ebook/service/documentMetadata?docCategory={cat}&flag=initial&status=Current"
+            if cat == 'Forms':
+                url = "https://www.mca.gov.in/bin/ebook/service/documentMetadata?docCategory=Forms&docGroup=The%20Companies%20Act%2C%202013&flag=initial"
+            else:
+                url = f"https://www.mca.gov.in/bin/ebook/service/documentMetadata?docCategory={cat}&flag=initial&status=Current"
             response = requests.get(url, headers=headers)
             response.raise_for_status()  # Raise exception for HTTP errors
 
